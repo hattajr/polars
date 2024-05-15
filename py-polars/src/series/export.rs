@@ -264,6 +264,7 @@ fn series_to_numpy_with_copy(py: Python, s: &Series) -> PyResult<PyObject> {
             let values = decimal_to_pyobject_iter(py, ca).map(|v| v.into_py(py));
             PyArray1::from_iter_bound(py, values).into_py(py)
         },
+        Struct(_) => struct_series_to_numpy(py, s),
         #[cfg(feature = "object")]
         Object(_, _) => {
             let ca = s
@@ -351,4 +352,23 @@ where
     let ca = s_phys.i64().unwrap();
     let values = ca.iter().map(|v| v.unwrap_or(i64::MIN).into());
     PyArray1::<T>::from_iter_bound(py, values).into_py(py)
+}
+/// Convert dates directly to i64 with i64::MIN representing a null value.
+fn struct_series_to_numpy(py: Python, s: &Series) -> PyObject {
+    let ca = s.struct_().unwrap();
+    let arrays = ca
+        .fields()
+        .iter()
+        .map(|s| series_to_numpy_with_copy(py, s).unwrap());
+
+    let values = ..;
+    PyArray1::from_iter_bound(py, values).into_py(py)
+}
+
+fn struct_dict(py: Python, vals: impl Iterator<Item = PyObject>, fields: &[Field]) -> PyObject {
+    let dict = PyDict::new_bound(py);
+    for (fld, val) in fields.iter().zip(vals) {
+        dict.set_item(fld.name().as_str(), val).unwrap()
+    }
+    dict.into_py(py)
 }
