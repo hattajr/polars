@@ -2,7 +2,7 @@ use std::ffi::{c_int, c_void};
 
 use ndarray::{Dim, Dimension};
 use numpy::npyffi::PyArrayObject;
-use numpy::{npyffi, Element, PyArrayDescr, PyArrayDescrMethods, ToNpyDims, PY_ARRAY_API};
+use numpy::{npyffi, PyArrayDescr, PyArrayDescrMethods, ToNpyDims, PY_ARRAY_API};
 use polars_core::prelude::*;
 use pyo3::intern;
 use pyo3::prelude::*;
@@ -102,25 +102,24 @@ pub(super) fn polars_dtype_to_np_temporal_dtype<'a>(
     py: Python<'a>,
     dtype: &DataType,
 ) -> Bound<'a, PyArrayDescr> {
-    use numpy::datetime::{units, Datetime, Timedelta};
     match dtype {
         DataType::Datetime(TimeUnit::Milliseconds, _) => {
-            Datetime::<units::Milliseconds>::get_dtype_bound(py)
+            PyArrayDescr::new_bound(py, intern!(py, "<M8[ms]")).unwrap()
         },
         DataType::Datetime(TimeUnit::Microseconds, _) => {
-            Datetime::<units::Microseconds>::get_dtype_bound(py)
+            PyArrayDescr::new_bound(py, intern!(py, "<M8[us]")).unwrap()
         },
         DataType::Datetime(TimeUnit::Nanoseconds, _) => {
-            Datetime::<units::Nanoseconds>::get_dtype_bound(py)
+            PyArrayDescr::new_bound(py, intern!(py, "<M8[ns]")).unwrap()
         },
         DataType::Duration(TimeUnit::Milliseconds) => {
-            Timedelta::<units::Milliseconds>::get_dtype_bound(py)
+            PyArrayDescr::new_bound(py, intern!(py, "<m8[ms]")).unwrap()
         },
         DataType::Duration(TimeUnit::Microseconds) => {
-            Timedelta::<units::Microseconds>::get_dtype_bound(py)
+            PyArrayDescr::new_bound(py, intern!(py, "<m8[us]")).unwrap()
         },
         DataType::Duration(TimeUnit::Nanoseconds) => {
-            Timedelta::<units::Nanoseconds>::get_dtype_bound(py)
+            PyArrayDescr::new_bound(py, intern!(py, "<m8[ns]")).unwrap()
         },
         _ => panic!("only Datetime/Duration inputs supported, got {}", dtype),
     }
