@@ -453,20 +453,40 @@ impl PyDataFrame {
     }
 
     #[cfg(feature = "json")]
-    pub fn write_json(&mut self, py_f: PyObject, pretty: bool, row_oriented: bool) -> PyResult<()> {
+    pub fn serialize(&mut self, py_f: PyObject) -> PyResult<()> {
+        let file = BufWriter::new(get_file_like(py_f, true)?);
+        let r = serde_json::to_writer(file, &self.df)
+            .map_err(|e| polars_err!(ComputeError: "{e}"))
+            .map_err(|e| PyPolarsErr::Other(format!("{e}")))?;
+
+        Ok(())
+    }
+
+    #[cfg(feature = "json")]
+    pub fn write_json(&mut self, py_f: PyObject) -> PyResult<()> {
         let file = BufWriter::new(get_file_like(py_f, true)?);
 
-        let r = match (pretty, row_oriented) {
-            (_, true) => JsonWriter::new(file)
-                .with_json_format(JsonFormat::Json)
-                .finish(&mut self.df),
-            (true, _) => serde_json::to_writer_pretty(file, &self.df)
-                .map_err(|e| polars_err!(ComputeError: "{e}")),
-            (false, _) => {
-                serde_json::to_writer(file, &self.df).map_err(|e| polars_err!(ComputeError: "{e}"))
-            },
-        };
+        let r = JsonWriter::new(file)
+            .with_json_format(JsonFormat::Json)
+            .finish(&mut self.df);
         r.map_err(|e| PyPolarsErr::Other(format!("{e}")))?;
+        Ok(())
+    }
+
+    #[cfg(feature = "json")]
+    pub fn write_json_old(
+        &mut self,
+        py_f: PyObject,
+        pretty: bool,
+        row_oriented: bool,
+    ) -> PyResult<()> {
+        let r = match (pretty, row_oriented) {
+            (_, true) => return self.write_json(py_f),
+            (true, _) => serde_json::to_writer_pretty(file, &self.df)
+                .map_err(|e| polars_err!(ComputeError: "{e}"))
+                .map_err(|e| PyPolarsErr::Other(format!("{e}")))?,
+            (false, _) => return self.serialize(py_f),
+        };
         Ok(())
     }
 

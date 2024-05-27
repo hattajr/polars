@@ -2175,6 +2175,50 @@ class DataFrame:
         return output.getvalue()
 
     @overload
+    def serialize(self, file: None = ...) -> str: ...
+
+    @overload
+    def serialize(self, file: IOBase | str | Path) -> None: ...
+
+    def serialize(self, file: IOBase | str | Path | None = None) -> str | None:
+        """
+        Serialize this DataFrame to a file or string in JSON format.
+
+        Parameters
+        ----------
+        file
+            File path or writable file-like object to which the result will be written.
+            If set to `None` (default), the output is returned as a string instead.
+
+        Examples
+        --------
+        >>> df = pl.DataFrame(
+        ...     {
+        ...         "foo": [1, 2, 3],
+        ...         "bar": [6, 7, 8],
+        ...     }
+        ... )
+        >>> df.serialize()
+        '{"columns":[{"name":"foo","datatype":"Int64","bit_settings":"","values":[1,2,3]},{"name":"bar","datatype":"Int64","bit_settings":"","values":[6,7,8]}]}'
+        """
+        if isinstance(file, (str, Path)):
+            file = normalize_filepath(file)
+        to_string_io = (file is not None) and isinstance(file, StringIO)
+        if file is None or to_string_io:
+            with BytesIO() as buf:
+                self._df.write_json(buf)
+                json_bytes = buf.getvalue()
+
+            json_str = json_bytes.decode("utf8")
+            if to_string_io:
+                file.write(json_str)  # type: ignore[union-attr]
+            else:
+                return json_str
+        else:
+            self._df.serialize(file)
+        return None
+
+    @overload
     def write_json(
         self,
         file: None = ...,
