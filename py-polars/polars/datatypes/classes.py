@@ -720,10 +720,9 @@ class Array(NestedType):
     ]
     """
 
-    inner: PolarsDataType | None = None
+    inner: PolarsDataType
     size: int
-    # outer shape
-    shape: None | tuple[int, ...] = None
+    shape: tuple[int, ...]
 
     def __init__(
         self,
@@ -760,8 +759,6 @@ class Array(NestedType):
         if isinstance(other, Array):
             if self.size != other.size:
                 return False
-            elif self.inner is None or other.inner is None:
-                return True
             else:
                 return self.inner == other.inner
         else:
